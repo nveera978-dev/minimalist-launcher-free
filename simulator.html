@@ -85,11 +85,14 @@
         
         <!-- Minimal Clock & Date Header -->
         <div class="mt-4">
-          <div id="largeDigitalClock" class="text-6xl font-extralight tracking-tighter text-white">20:45</div>
+          <div class="flex items-baseline gap-2">
+            <div id="largeDigitalClock" class="text-6xl font-extralight tracking-tighter text-white">8:45</div>
+            <span id="amPmDisplay" class="text-sm font-bold text-emerald-400">PM</span>
+          </div>
           <div id="dateDisplay" class="text-sm font-light text-slate-400 mt-1 uppercase tracking-widest">Saturday, Oct 3</div>
-          <div class="flex items-center gap-2 mt-3 text-xs text-slate-500">
+          <div class="flex items-center gap-2 mt-3 text-xs text-emerald-400">
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span id="mindfulQuote">"Notice your urge. Choose your focus."</span>
+            <span id="mindfulQuote">"You are doing great today. Stay present and keep winning."</span>
           </div>
         </div>
 
@@ -467,22 +470,27 @@
       { name: 'YouTube', category: 'Entertainment', mindful: true, pinned: true }
     ];
 
-    // Initialize clock
+    // Initialize clock with 12-hour format & AM/PM
     function updateClock() {
       const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
+      let hours = now.getHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 12-hour format
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const timeStr = `${hours}:${minutes}`;
 
-      const options = { weekday: 'long', month: 'short', day: 'numeric' };
+      const options = { weekday: 'long', month: 'long', day: 'numeric' };
       const dateStr = now.toLocaleDateString('en-US', options);
 
       const statusClock = document.getElementById('statusBarClock');
       const largeClock = document.getElementById('largeDigitalClock');
+      const amPmDisplay = document.getElementById('amPmDisplay');
       const dateDisplay = document.getElementById('dateDisplay');
 
       if (statusClock) statusClock.textContent = timeStr;
       if (largeClock) largeClock.textContent = timeStr;
+      if (amPmDisplay) amPmDisplay.textContent = ampm;
       if (dateDisplay) dateDisplay.textContent = dateStr;
     }
     setInterval(updateClock, 1000);

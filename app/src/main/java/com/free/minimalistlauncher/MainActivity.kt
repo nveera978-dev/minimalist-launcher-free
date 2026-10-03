@@ -26,10 +26,21 @@ class MainActivity : Activity() {
     private lateinit var prefs: LauncherPreferences
     private lateinit var defaultBanner: Button
     private lateinit var clockView: TextView
+    private lateinit var amPmView: TextView
     private lateinit var dateView: TextView
+    private lateinit var quoteView: TextView
     private lateinit var favoritesContainer: LinearLayout
     private val handler = Handler(Looper.getMainLooper())
     private var allInstalledApps: List<AppItem> = emptyList()
+
+    private val positiveAffirmations = listOf(
+        "You are doing great today. Stay present and keep winning.",
+        "Be proud of how far you've come. Every step matters.",
+        "Your time is your life. You are utilizing it with wisdom.",
+        "Believe in yourself. You have the power to create great things.",
+        "You are in control of your day. Keep shining and growing.",
+        "Appreciate this moment. You are focused, capable, and strong."
+    )
 
     private val timeUpdater = object : Runnable {
         override fun run() {
@@ -65,27 +76,39 @@ class MainActivity : Activity() {
         }
         root.addView(defaultBanner)
 
-        // Clock & Date Header
+        // 12-Hour Clock with AM/PM on the right
+        val clockRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.BOTTOM
+        }
         clockView = TextView(this).apply {
             textSize = 58f
             setTextColor(Color.WHITE)
             typeface = Typeface.create("sans-serif-thin", Typeface.NORMAL)
         }
-        root.addView(clockView)
+        amPmView = TextView(this).apply {
+            textSize = 18f
+            setTextColor(Color.parseColor("#34D399"))
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(14, 0, 0, 14)
+        }
+        clockRow.addView(clockView)
+        clockRow.addView(amPmView)
+        root.addView(clockRow)
 
         dateView = TextView(this).apply {
             textSize = 14f
             setTextColor(Color.parseColor("#94A3B8"))
-            setPadding(0, 0, 0, 24)
+            setPadding(0, 4, 0, 16)
         }
         root.addView(dateView)
 
-        // Mindful Quote
-        val quoteView = TextView(this).apply {
+        // Positive Appreciation Words
+        quoteView = TextView(this).apply {
             text = getString(R.string.default_quote)
-            textSize = 12f
-            setTextColor(Color.parseColor("#64748B"))
-            setPadding(0, 0, 0, 40)
+            textSize = 13f
+            setTextColor(Color.parseColor("#34D399"))
+            setPadding(0, 0, 0, 36)
         }
         root.addView(quoteView)
 
@@ -185,10 +208,17 @@ class MainActivity : Activity() {
 
     private fun updateClock() {
         val now = Date()
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val dateFormat = SimpleDateFormat("EEEE, MMM d", Locale.getDefault())
+        val timeFormat = SimpleDateFormat("h:mm", Locale.getDefault())
+        val amPmFormat = SimpleDateFormat("a", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
+
         clockView.text = timeFormat.format(now)
-        dateView.text = dateFormat.format(now).uppercase(Locale.getDefault())
+        amPmView.text = amPmFormat.format(now).uppercase(Locale.getDefault())
+        dateView.text = dateFormat.format(now)
+
+        val cal = Calendar.getInstance()
+        val dayIndex = cal.get(Calendar.DAY_OF_YEAR)
+        quoteView.text = "\"${positiveAffirmations[dayIndex % positiveAffirmations.size]}\""
     }
 
     private fun loadInstalledApps() {
