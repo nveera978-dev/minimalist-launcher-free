@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimalist Phone Launcher - Interactive Simulator</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.45); opacity: 1; }
+    }
+    .animate-breathe {
+      animation: breathe 4s ease-in-out infinite;
+    }
+    /* Custom scrollbar for minimalist look */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-3 font-sans selection:bg-slate-700">
+
+  <!-- Top Controls & Notice -->
+  <header class="w-full max-w-4xl flex flex-wrap items-center justify-between gap-3 mb-4 px-2">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <h1 class="text-lg font-semibold tracking-wide text-white">Free Minimalist Launcher Simulator</h1>
+      </div>
+      <p class="text-xs text-slate-400 mt-0.5">Test the exact dopamine-free features before installing the Android build</p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Theme Switcher -->
+      <select id="themeSelector" onchange="changeTheme(this.value)" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-200 outline-none focus:border-slate-500">
+        <option value="oled">Pure OLED Black</option>
+        <option value="slate">Midnight Slate</option>
+        <option value="forest">Zen Forest</option>
+        <option value="monochrome">Paper Light</option>
+      </select>
+
+      <!-- View Mode -->
+      <button onclick="togglePhoneFrame()" id="frameToggleBtn" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-1.5 rounded-lg text-slate-200 transition">
+        📱 Frame: On
+      </button>
+
+      <!-- Stats Modal Button -->
+      <button onclick="openStatsModal()" class="bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        Time Saved: <span id="statTimeSavedHeader" class="font-bold">42m</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Phone Container / Screen -->
+  <main id="phoneWrapper" class="relative w-full max-w-[390px] h-[780px] rounded-[48px] p-3 shadow-2xl transition-all duration-300 border-[8px] border-slate-800 bg-slate-900 shadow-emerald-950/20">
+
+    <!-- Phone Inner Display -->
+    <div id="phoneScreen" class="relative w-full h-full rounded-[38px] overflow-hidden flex flex-col justify-between p-6 select-none bg-black text-white transition-colors duration-300">
+
+      <!-- Status Bar -->
+      <div class="flex items-center justify-between text-xs tracking-wider opacity-75 pt-1">
+        <span id="statusBarClock" class="font-medium text-xs">20:45</span>
+        <!-- Speaker / Camera Notch -->
+        <div class="w-20 h-4 bg-slate-800/80 rounded-full mx-auto -mt-1.5 flex items-center justify-center">
+          <div class="w-2 h-2 rounded-full bg-slate-950"></div>
+        </div>
+        <div class="flex items-center gap-1.5 text-[11px]">
+          <span>5G</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          <span id="batteryPercentage">94%</span>
+        </div>
+      </div>
+
+      <!-- MAIN HOME SCREEN VIEW -->
+      <div id="homeScreenView" class="flex-1 flex flex-col justify-between py-6">
+        
+        <!-- Minimal Clock & Date Header -->
+        <div class="mt-4">
+          <div id="largeDigitalClock" class="text-6xl font-extralight tracking-tighter text-white">20:45</div>
+          <div id="dateDisplay" class="text-sm font-light text-slate-400 mt-1 uppercase tracking-widest">Saturday, Oct 3</div>
+          <div class="flex items-center gap-2 mt-3 text-xs text-slate-500">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span id="mindfulQuote">"Notice your urge. Choose your focus."</span>
+          </div>
+        </div>
+
+        <!-- Clean Text-Only Favorite Apps (No Dopamine Icons!) -->
+        <div class="space-y-4 my-auto">
+          <p class="text-[11px] uppercase tracking-[0.2em] text-slate-600 font-semibold mb-2">Favorites</p>
+          
+          <button onclick="launchApp('Phone', false)" class="w-full text-left py-1 text-2xl font-light tracking-wide text-slate-200 hover:text-white hover:translate-x-1 transition-all flex items-center justify-between group">
+            <span>Phone</span>
+            <span class="text-xs text-slate-600 group-hover:text-slate-400">Default</span>
+          </button>
+
+          <button onclick="launchApp('WhatsApp', false)" class="w-full text-left py-1 text-2xl font-light tracking-wide text-slate-200 hover:text-white hover:translate-x-1 transition-all flex items-center justify-between group">
+            <span>WhatsApp</span>
+            <span class="text-xs text-slate-600 group-hover:text-slate-400">Chat</span>
+          </button>
+
+          <!-- YouTube with Mindful Intervention Trigger -->
+          <button onclick="launchApp('YouTube', true)" class="w-full text-left py-1 text-2xl font-light tracking-wide text-slate-200 hover:text-emerald-400 hover:translate-x-1 transition-all flex items-center justify-between group">
+            <span class="flex items-center gap-2">
+              YouTube
+              <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/40">Mindful</span>
+            </span>
+            <span class="text-xs text-slate-600 group-hover:text-emerald-400">5s delay</span>
+          </button>
+
+          <!-- Instagram with Mindful Intervention Trigger -->
+          <button onclick="launchApp('Instagram', true)" class="w-full text-left py-1 text-2xl font-light tracking-wide text-slate-200 hover:text-emerald-400 hover:translate-x-1 transition-all flex items-center justify-between group">
+            <span class="flex items-center gap-2">
+              Instagram
+              <span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/40">Mindful</span>
+            </span>
+            <span class="text-xs text-slate-600 group-hover:text-emerald-400">5s delay</span>
+          </button>
+
+          <button onclick="launchApp('Notes & Thoughts', false)" class="w-full text-left py-1 text-2xl font-light tracking-wide text-slate-200 hover:text-white hover:translate-x-1 transition-all flex items-center justify-between group">
+            <span>Notes</span>
+            <span class="text-xs text-slate-600 group-hover:text-slate-400">Productive</span>
+          </button>
+
+          <button onclick="launchApp('Chrome', false)" class="w-full text-left py-1 text-2xl font-light tracking-wide text-slate-200 hover:text-white hover:translate-x-1 transition-all flex items-center justify-between group">
+            <span>Chrome</span>
+            <span class="text-xs text-slate-600 group-hover:text-slate-400">Search</span>
+          </button>
+        </div>
+
+        <!-- Bottom Navigation Bar -->
+        <div class="pt-4 border-t border-white/5 flex items-center justify-between">
+          <button onclick="openAppDrawer()" class="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition py-2 px-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            <span>All Apps (A-Z)</span>
+          </button>
+
+          <button onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-slate-300 transition" title="Settings">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 2: MINDFUL DELAY / BREATH INTERVENTION -->
+      <!-- ============================================== -->
+      <div id="mindfulDelayScreen" class="hidden absolute inset-0 z-20 bg-black/95 backdrop-blur-md p-6 flex flex-col justify-between">
+        
+        <div class="text-center pt-8">
+          <span class="inline-block text-[11px] uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+            Mindful Breathing Delay
+          </span>
+          <h2 class="text-xl font-medium mt-4 text-slate-100">Pause for a moment</h2>
+          <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+            Opening <span id="targetAppName" class="font-bold text-white">YouTube</span>. Are you opening this with intention, or by reflex?
+          </p>
+        </div>
+
+        <!-- Breathing Visual Circle -->
+        <div class="flex flex-col items-center justify-center my-auto">
+          <div class="relative w-44 h-44 flex items-center justify-center">
+            <!-- Pulsing outer circle -->
+            <div class="absolute inset-0 rounded-full border-2 border-emerald-500/20 animate-breathe"></div>
+            <!-- Inner breathing orb -->
+            <div class="w-32 h-32 rounded-full bg-gradient-to-tr from-emerald-900/40 to-emerald-500/20 border border-emerald-500/50 flex flex-col items-center justify-center animate-breathe shadow-lg shadow-emerald-950/50">
+              <span id="delayCountdownText" class="text-4xl font-extralight text-emerald-300">5</span>
+              <span class="text-[10px] uppercase tracking-wider text-emerald-400 mt-1">breathe</span>
+            </div>
+          </div>
+          <p id="breathPrompt" class="text-xs text-slate-400 mt-6 italic">"Take one deep breath in... and let it go."</p>
+        </div>
+
+        <!-- Intentional Time Limit Picker -->
+        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-2xl mb-4 text-center">
+          <p class="text-xs text-slate-300 font-medium mb-2">Set intentional session limit:</p>
+          <div class="flex justify-center gap-2">
+            <button onclick="setSessionLimit(3)" class="session-btn px-3 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">3 min</button>
+            <button onclick="setSessionLimit(5)" class="session-btn px-3 py-1 rounded-lg text-xs bg-emerald-700 text-white font-semibold border border-emerald-500 transition">5 min</button>
+            <button onclick="setSessionLimit(10)" class="session-btn px-3 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">10 min</button>
+            <button onclick="setSessionLimit(15)" class="session-btn px-3 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">15 min</button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-2.5 pb-4">
+          <!-- Button to exit (Save time) -->
+          <button onclick="abortMindfulOpen()" class="w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-medium text-emerald-400 transition flex items-center justify-center gap-2 shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            <span>I don't need this right now (Exit)</span>
+          </button>
+
+          <!-- Button to proceed after delay -->
+          <button id="proceedAppBtn" onclick="proceedToApp()" disabled class="w-full py-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-normal text-slate-500 cursor-not-allowed transition">
+            Continue after 5s pause...
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 3: SIMULATED APP RUNNING WITH TIMER     -->
+      <!-- ============================================== -->
+      <div id="simulatedAppScreen" class="hidden absolute inset-0 z-10 bg-slate-950 p-5 flex flex-col justify-between">
+        
+        <!-- Active App Mindful Header Pill -->
+        <div class="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-full px-4 py-2 mt-2 shadow-lg">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            <span id="activeAppTitle" class="text-xs font-medium text-white">YouTube</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-amber-300 font-mono" id="appSessionTimer">05:00</span>
+            <button onclick="closeActiveApp()" class="text-slate-400 hover:text-white text-xs px-2 py-0.5 rounded bg-slate-800" title="Exit to Home">
+              ✕ Exit
+            </button>
+          </div>
+        </div>
+
+        <!-- Simulated App Content Placeholder -->
+        <div class="my-auto text-center space-y-4 px-4">
+          <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 mx-auto flex items-center justify-center text-slate-400 text-2xl font-light">
+            📱
+          </div>
+          <div>
+            <h3 class="text-base font-medium text-slate-200" id="simAppHeading">Simulated App Session</h3>
+            <p class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+              In real life, this is your opened app. The launcher runs a background timer. When your time ends, it gives you the Mindful Brain Reminder to exit!
+            </p>
+          </div>
+
+          <!-- Quick Test Simulator Control -->
+          <div class="pt-4 border-t border-slate-800/80">
+            <button onclick="fastForwardTime()" class="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs px-3 py-2 rounded-xl transition">
+              ⏩ Fast Forward to "Time Up" Reminder
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom Home Indicator -->
+        <div class="text-center pb-2">
+          <button onclick="closeActiveApp()" class="text-xs text-slate-500 hover:text-slate-300 tracking-wider uppercase">
+            Tap to return to Minimal Home
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 4: MINDFUL TIME EXPIRED POPUP ALERT    -->
+      <!-- ============================================== -->
+      <div id="timeExpiredOverlay" class="hidden absolute inset-0 z-30 bg-black/95 backdrop-blur-lg p-6 flex flex-col justify-between text-center">
+        <div class="pt-10">
+          <div class="w-16 h-16 rounded-full bg-red-950/80 border border-red-500/50 mx-auto flex items-center justify-center text-red-400 text-2xl mb-4">
+            ⏰
+          </div>
+          <span class="text-xs uppercase tracking-widest text-red-400 font-semibold">Brain Utilization Alert</span>
+          <h2 class="text-2xl font-light text-white mt-2">Time is Up!</h2>
+          <p class="text-xs text-slate-300 mt-2 max-w-xs mx-auto leading-relaxed">
+            You set a limit for this session. Your conscious mind wanted to stop here so you can utilize your time for real life.
+          </p>
+        </div>
+
+        <div class="my-auto py-6 border-y border-slate-800 bg-slate-900/50 rounded-2xl px-4">
+          <p class="text-xs text-slate-400 italic">"The cost of a thing is the amount of life which is required to be exchanged for it."</p>
+          <p class="text-[11px] text-slate-500 mt-1">— Henry David Thoreau</p>
+        </div>
+
+        <div class="space-y-3 pb-4">
+          <button onclick="exitToHomeFromExpired()" class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition shadow-lg shadow-emerald-950/40">
+            Exit Now & Utilize My Time
+          </button>
+          <button onclick="extendTime(2)" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 text-xs transition">
+            Give me 2 more minutes only
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 5: APP DRAWER (A-Z SEARCHABLE)         -->
+      <!-- ============================================== -->
+      <div id="appDrawerScreen" class="hidden absolute inset-0 z-20 bg-black p-5 flex flex-col justify-between">
+        
+        <!-- Search bar -->
+        <div>
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-widest">App Drawer</span>
+            <button onclick="closeAppDrawer()" class="text-slate-400 hover:text-white text-xs px-2 py-1">Close ✕</button>
+          </div>
+
+          <div class="relative mt-3">
+            <input type="text" id="appSearchInput" oninput="filterApps(this.value)" placeholder="Search apps..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-slate-600" />
+            <span class="absolute right-3 top-2.5 text-xs text-slate-500">🔍</span>
+          </div>
+        </div>
+
+        <!-- Scrollable Alphabetical Apps List -->
+        <div id="appsListContainer" class="flex-1 overflow-y-auto my-3 space-y-2.5 pr-1">
+          <!-- Apps dynamically populated via JS -->
+        </div>
+
+        <div class="text-center pt-2 border-t border-slate-800">
+          <p class="text-[11px] text-slate-500">Tap ★ to pin to Home • Tap ⏸ to set Mindful Delay</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ============================================== -->
+  <!-- MODAL: SETTINGS & CUSTOMIZATION                -->
+  <!-- ============================================== -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-base font-semibold text-white">Launcher Preferences</h3>
+          <p class="text-xs text-slate-400">100% Free & Open Source Settings</p>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Mindful Breathing Delay Duration</label>
+          <select id="settingDelayDuration" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200 outline-none">
+            <option value="5" selected>5 Seconds (Recommended for reflex breaking)</option>
+            <option value="10">10 Seconds (Deep pause)</option>
+            <option value="15">15 Seconds (Heavy resistance)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-medium mb-1">Home Screen Font Size</label>
+          <select id="settingFontSize" onchange="changeFontSize(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200 outline-none">
+            <option value="normal">Standard Clean (24px)</option>
+            <option value="large">Large Readable (28px)</option>
+            <option value="compact">Compact Minimal (20px)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between py-2 border-t border-slate-800">
+          <div>
+            <p class="text-slate-200 font-medium">Block Addictive Apps during Focus Hours</p>
+            <p class="text-slate-500 text-[11px]">Strict lock on entertainment apps</p>
+          </div>
+          <input type="checkbox" id="settingStrictLock" class="rounded bg-slate-800 border-slate-700 text-emerald-500 focus:ring-0">
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400 leading-relaxed">
+          💡 <span class="text-slate-200 font-medium">Why is this completely free?</span><br>
+          Commercial apps charge $30/year for this simple text screen. Our architecture is 100% local, lightweight (<4 MB), with zero trackers and zero ads.
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+        <button onclick="closeSettingsModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-medium transition">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: DIGITAL DETOX STATS                     -->
+  <!-- ============================================== -->
+  <div id="statsModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-base font-semibold text-white">Your Time Recovery Dashboard</h3>
+          <p class="text-xs text-slate-400">See how much life you saved today</p>
+        </div>
+        <button onclick="closeStatsModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wider">Mindless Opens Blocked</p>
+          <p class="text-2xl font-bold text-emerald-400 mt-1" id="statOpensBlocked">14</p>
+          <p class="text-[10px] text-slate-400 mt-1">Consciously exited at delay</p>
+        </div>
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+          <p class="text-[11px] text-slate-500 uppercase tracking-wider">Estimated Time Saved</p>
+          <p class="text-2xl font-bold text-amber-400 mt-1" id="statMinutesSaved">42 min</p>
+          <p class="text-[10px] text-slate-400 mt-1">~3 min per avoided session</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <p class="text-xs font-medium text-slate-300 mb-2">Most Intercepted Impulse Apps:</p>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-300">YouTube</span>
+            <span class="text-emerald-400 font-semibold">8 times resisted</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-emerald-500 h-full rounded-full" style="width: 65%"></div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-slate-300">Instagram</span>
+            <span class="text-emerald-400 font-semibold">6 times resisted</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-emerald-500 h-full rounded-full" style="width: 45%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-1">
+        <button onclick="closeStatsModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-xs font-medium transition">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT STATE ENGINE -->
+  <script>
+    // State management
+    let state = {
+      isPhoneFrame: true,
+      currentTheme: 'oled',
+      delaySeconds: 5,
+      selectedSessionLimitMinutes: 5,
+      activeApp: null,
+      countdownTimer: null,
+      sessionTimerInterval: null,
+      sessionSecondsRemaining: 300,
+      stats: {
+        opensBlocked: 14,
+        timeSavedMinutes: 42
+      }
+    };
+
+    // Full database of installed apps for drawer
+    const sampleApps = [
+      { name: 'Calculator', category: 'Tool', mindful: false, pinned: false },
+      { name: 'Calendar', category: 'Productivity', mindful: false, pinned: false },
+      { name: 'Camera', category: 'Media', mindful: false, pinned: false },
+      { name: 'Chrome', category: 'Browser', mindful: false, pinned: true },
+      { name: 'Clock & Alarms', category: 'Tool', mindful: false, pinned: false },
+      { name: 'Email', category: 'Productivity', mindful: false, pinned: false },
+      { name: 'Files', category: 'Tool', mindful: false, pinned: false },
+      { name: 'Instagram', category: 'Entertainment', mindful: true, pinned: true },
+      { name: 'Maps', category: 'Travel', mindful: false, pinned: false },
+      { name: 'Messages', category: 'Communication', mindful: false, pinned: true },
+      { name: 'Netflix', category: 'Entertainment', mindful: true, pinned: false },
+      { name: 'Notes & Thoughts', category: 'Productivity', mindful: false, pinned: true },
+      { name: 'Phone', category: 'Communication', mindful: false, pinned: true },
+      { name: 'Photos', category: 'Media', mindful: false, pinned: false },
+      { name: 'Play Store', category: 'System', mindful: false, pinned: false },
+      { name: 'Reddit', category: 'Entertainment', mindful: true, pinned: false },
+      { name: 'Settings', category: 'System', mindful: false, pinned: false },
+      { name: 'Spotify', category: 'Music', mindful: false, pinned: false },
+      { name: 'Telegram', category: 'Communication', mindful: false, pinned: false },
+      { name: 'TikTok', category: 'Entertainment', mindful: true, pinned: false },
+      { name: 'Twitter / X', category: 'Entertainment', mindful: true, pinned: false },
+      { name: 'WhatsApp', category: 'Communication', mindful: false, pinned: true },
+      { name: 'YouTube', category: 'Entertainment', mindful: true, pinned: true }
+    ];
+
+    // Initialize clock
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const timeStr = `${hours}:${minutes}`;
+
+      const options = { weekday: 'long', month: 'short', day: 'numeric' };
+      const dateStr = now.toLocaleDateString('en-US', options);
+
+      const statusClock = document.getElementById('statusBarClock');
+      const largeClock = document.getElementById('largeDigitalClock');
+      const dateDisplay = document.getElementById('dateDisplay');
+
+      if (statusClock) statusClock.textContent = timeStr;
+      if (largeClock) largeClock.textContent = timeStr;
+      if (dateDisplay) dateDisplay.textContent = dateStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Launch App Trigger
+    function launchApp(appName, isMindful) {
+      state.activeApp = appName;
+      if (isMindful) {
+        openMindfulDelay(appName);
+      } else {
+        openSimulatedApp(appName);
+      }
+    }
+
+    // Open Mindful Delay Screen
+    function openMindfulDelay(appName) {
+      const screen = document.getElementById('mindfulDelayScreen');
+      const targetNameEl = document.getElementById('targetAppName');
+      const countdownEl = document.getElementById('delayCountdownText');
+      const proceedBtn = document.getElementById('proceedAppBtn');
+
+      targetNameEl.textContent = appName;
+      screen.classList.remove('hidden');
+
+      let remaining = parseInt(document.getElementById('settingDelayDuration')?.value || 5);
+      countdownEl.textContent = remaining;
+      proceedBtn.disabled = true;
+      proceedBtn.classList.add('cursor-not-allowed', 'text-slate-500', 'bg-slate-900');
+      proceedBtn.classList.remove('bg-emerald-600', 'text-white', 'hover:bg-emerald-500');
+      proceedBtn.textContent = `Wait ${remaining}s to proceed...`;
+
+      clearInterval(state.countdownTimer);
+      state.countdownTimer = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+          countdownEl.textContent = remaining;
+          proceedBtn.textContent = `Wait ${remaining}s to proceed...`;
+        } else {
+          clearInterval(state.countdownTimer);
+          countdownEl.textContent = '✓';
+          proceedBtn.disabled = false;
+          proceedBtn.classList.remove('cursor-not-allowed', 'text-slate-500', 'bg-slate-900');
+          proceedBtn.classList.add('bg-emerald-600', 'text-white', 'hover:bg-emerald-500');
+          proceedBtn.textContent = `Continue to ${appName} (${state.selectedSessionLimitMinutes}m limit)`;
+        }
+      }, 1000);
+    }
+
+    // Abort Mindful Open (Victory! Brain utilized)
+    function abortMindfulOpen() {
+      clearInterval(state.countdownTimer);
+      document.getElementById('mindfulDelayScreen').classList.add('hidden');
+      
+      // Increment stats
+      state.stats.opensBlocked++;
+      state.stats.timeSavedMinutes += 3;
+      updateStatsUI();
+
+      // Show temporary celebratory toast on phone screen
+      showPhoneToast(`🎉 Mindful Win! Impulse resisted. +3 min saved.`);
+    }
+
+    // Proceed to target app after delay
+    function proceedToApp() {
+      clearInterval(state.countdownTimer);
+      document.getElementById('mindfulDelayScreen').classList.add('hidden');
+      openSimulatedApp(state.activeApp);
+    }
+
+    // Set intentional session limit
+    function setSessionLimit(minutes) {
+      state.selectedSessionLimitMinutes = minutes;
+      state.sessionSecondsRemaining = minutes * 60;
+      
+      // Update UI button highlights
+      const buttons = document.querySelectorAll('.session-btn');
+      buttons.forEach(btn => {
+        if (btn.textContent.includes(`${minutes} min`)) {
+          btn.className = 'session-btn px-3 py-1 rounded-lg text-xs bg-emerald-700 text-white font-semibold border border-emerald-500 transition';
+        } else {
+          btn.className = 'session-btn px-3 py-1 rounded-lg text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition';
+        }
+      });
+
+      const proceedBtn = document.getElementById('proceedAppBtn');
+      if (!proceedBtn.disabled) {
+        proceedBtn.textContent = `Continue to ${state.activeApp} (${minutes}m limit)`;
+      }
+    }
+
+    // Open Simulated App
+    function openSimulatedApp(appName) {
+      const appScreen = document.getElementById('simulatedAppScreen');
+      const appTitle = document.getElementById('activeAppTitle');
+      const appHeading = document.getElementById('simAppHeading');
+      
+      appTitle.textContent = appName;
+      appHeading.textContent = `Active App: ${appName}`;
+      appScreen.classList.remove('hidden');
+
+      // Start Session Timer
+      state.sessionSecondsRemaining = state.selectedSessionLimitMinutes * 60;
+      updateSessionTimerDisplay();
+
+      clearInterval(state.sessionTimerInterval);
+      state.sessionTimerInterval = setInterval(() => {
+        state.sessionSecondsRemaining--;
+        updateSessionTimerDisplay();
+
+        if (state.sessionSecondsRemaining <= 0) {
+          clearInterval(state.sessionTimerInterval);
+          triggerTimeExpiredAlert();
+        }
+      }, 1000);
+    }
+
+    function updateSessionTimerDisplay() {
+      const mins = Math.floor(state.sessionSecondsRemaining / 60);
+      const secs = state.sessionSecondsRemaining % 60;
+      const str = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      const timerEl = document.getElementById('appSessionTimer');
+      if (timerEl) timerEl.textContent = str;
+    }
+
+    // Fast forward to test "Time Expired" alert
+    function fastForwardTime() {
+      state.sessionSecondsRemaining = 2;
+    }
+
+    // Trigger Mindful Alert when time is up
+    function triggerTimeExpiredAlert() {
+      document.getElementById('timeExpiredOverlay').classList.remove('hidden');
+    }
+
+    // Exit to Home from expired overlay
+    function exitToHomeFromExpired() {
+      document.getElementById('timeExpiredOverlay').classList.add('hidden');
+      document.getElementById('simulatedAppScreen').classList.add('hidden');
+      clearInterval(state.sessionTimerInterval);
+      showPhoneToast(`👏 Great discipline! Back to focused living.`);
+    }
+
+    // Extend time
+    function extendTime(extraMins) {
+      document.getElementById('timeExpiredOverlay').classList.add('hidden');
+      state.sessionSecondsRemaining = extraMins * 60;
+      clearInterval(state.sessionTimerInterval);
+      state.sessionTimerInterval = setInterval(() => {
+        state.sessionSecondsRemaining--;
+        updateSessionTimerDisplay();
+        if (state.sessionSecondsRemaining <= 0) {
+          clearInterval(state.sessionTimerInterval);
+          triggerTimeExpiredAlert();
+        }
+      }, 1000);
+    }
+
+    // Close Active App cleanly
+    function closeActiveApp() {
+      clearInterval(state.sessionTimerInterval);
+      document.getElementById('simulatedAppScreen').classList.add('hidden');
+    }
+
+    // App Drawer Logic
+    function openAppDrawer() {
+      renderAppDrawer(sampleApps);
+      document.getElementById('appDrawerScreen').classList.remove('hidden');
+    }
+
+    function closeAppDrawer() {
+      document.getElementById('appDrawerScreen').classList.add('hidden');
+    }
+
+    function renderAppDrawer(apps) {
+      const container = document.getElementById('appsListContainer');
+      container.innerHTML = '';
+
+      if (apps.length === 0) {
+        container.innerHTML = '<div class="text-xs text-slate-500 text-center py-8">No matching apps found</div>';
+        return;
+      }
+
+      apps.forEach(app => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between py-1.5 px-2 hover:bg-slate-900/80 rounded-lg group transition';
+        row.innerHTML = `
+          <button onclick="launchFromDrawer('${app.name}', ${app.mindful})" class="text-left flex-1 text-sm font-light text-slate-200 hover:text-white flex items-center gap-2">
+            <span>${app.name}</span>
+            ${app.mindful ? '<span class="text-[9px] uppercase px-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">Mindful</span>' : ''}
+          </button>
+          <div class="flex items-center gap-1.5 text-xs">
+            <button onclick="toggleMindfulApp('${app.name}')" title="Toggle mindful pause" class="px-1.5 py-0.5 rounded text-[11px] ${app.mindful ? 'text-emerald-400' : 'text-slate-600 hover:text-slate-400'}">
+              ${app.mindful ? '⏸ Delay On' : '+ Add Delay'}
+            </button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function filterApps(query) {
+      const filtered = sampleApps.filter(app => app.name.toLowerCase().includes(query.toLowerCase()));
+      renderAppDrawer(filtered);
+    }
+
+    function launchFromDrawer(appName, isMindful) {
+      closeAppDrawer();
+      launchApp(appName, isMindful);
+    }
+
+    function toggleMindfulApp(appName) {
+      const app = sampleApps.find(a => a.name === appName);
+      if (app) {
+        app.mindful = !app.mindful;
+        renderAppDrawer(sampleApps);
+      }
+    }
+
+    // Modals
+    function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
+    function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+    function openStatsModal() { document.getElementById('statsModal').classList.remove('hidden'); }
+    function closeStatsModal() { document.getElementById('statsModal').classList.add('hidden'); }
+
+    // Toggle phone frame vs full viewport
+    function togglePhoneFrame() {
+      state.isPhoneFrame = !state.isPhoneFrame;
+      const wrapper = document.getElementById('phoneWrapper');
+      const toggleBtn = document.getElementById('frameToggleBtn');
+
+      if (state.isPhoneFrame) {
+        wrapper.className = "relative w-full max-w-[390px] h-[780px] rounded-[48px] p-3 shadow-2xl transition-all duration-300 border-[8px] border-slate-800 bg-slate-900 shadow-emerald-950/20";
+        toggleBtn.textContent = "📱 Frame: On";
+      } else {
+        wrapper.className = "relative w-full max-w-xl h-[820px] rounded-2xl p-2 shadow-2xl transition-all duration-300 border-2 border-slate-800 bg-slate-950";
+        toggleBtn.textContent = "📱 Frame: Off (Expanded)";
+      }
+    }
+
+    // Change Theme
+    function changeTheme(theme) {
+      state.currentTheme = theme;
+      const screen = document.getElementById('phoneScreen');
+      const drawer = document.getElementById('appDrawerScreen');
+      const mindfulScreen = document.getElementById('mindfulDelayScreen');
+
+      if (theme === 'oled') {
+        screen.style.backgroundColor = '#000000';
+        screen.style.color = '#ffffff';
+        if (drawer) drawer.style.backgroundColor = '#000000';
+      } else if (theme === 'slate') {
+        screen.style.backgroundColor = '#0f172a';
+        screen.style.color = '#f8fafc';
+        if (drawer) drawer.style.backgroundColor = '#0f172a';
+      } else if (theme === 'forest') {
+        screen.style.backgroundColor = '#051911';
+        screen.style.color = '#e2f4ea';
+        if (drawer) drawer.style.backgroundColor = '#051911';
+      } else if (theme === 'monochrome') {
+        screen.style.backgroundColor = '#18181b';
+        screen.style.color = '#fafafa';
+        if (drawer) drawer.style.backgroundColor = '#18181b';
+      }
+    }
+
+    // Change Font Size
+    function changeFontSize(size) {
+      const appButtons = document.querySelectorAll('#homeScreenView button span.text-2xl');
+      appButtons.forEach(span => {
+        if (size === 'large') {
+          span.className = 'text-3xl font-light tracking-wide';
+        } else if (size === 'compact') {
+          span.className = 'text-xl font-light tracking-wide';
+        } else {
+          span.className = 'text-2xl font-light tracking-wide';
+        }
+      });
+    }
+
+    // Stats UI Update
+    function updateStatsUI() {
+      document.getElementById('statOpensBlocked').textContent = state.stats.opensBlocked;
+      document.getElementById('statMinutesSaved').textContent = `${state.stats.timeSavedMinutes} min`;
+      document.getElementById('statTimeSavedHeader').textContent = `${state.stats.timeSavedMinutes}m`;
+    }
+
+    // Quick Toast Message
+    function showPhoneToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'absolute top-14 left-6 right-6 z-40 bg-slate-800/95 border border-slate-700 text-slate-100 text-xs py-2.5 px-3 rounded-xl shadow-xl text-center backdrop-blur-sm transition-all animate-bounce';
+      toast.textContent = msg;
+      document.getElementById('phoneScreen').appendChild(toast);
+      setTimeout(() => toast.remove(), 3200);
+    }
+  </script>
+</body>
+</html>

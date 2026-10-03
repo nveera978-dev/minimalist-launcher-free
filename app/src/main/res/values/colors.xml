@@ -1,0 +1,14 @@
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="slate_900">#FF0F172A</color>
+    <color name="slate_800">#FF1E293B</color>
+    <color name="slate_400">#FF94A3B8</color>
+    <color name="slate_500">#FF64748B</color>
+    <color name="slate_600">#FF475569</color>
+    <color name="emerald_500">#FF10B981</color>
+    <color name="emerald_400">#FF34D399</color>
+    <color name="emerald_950">#FF022C22</color>
+    <color name="red_400">#FFF87171</color>
+    <color name="red_950">#FF450A0A</color>
+</resources>

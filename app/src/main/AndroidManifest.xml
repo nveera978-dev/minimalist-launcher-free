@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.free.minimalistlauncher">
+
+    <!-- Query all installed apps to display the minimalist app drawer -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    <!-- Timer and notification permissions for mindful exit alerts -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <application
+        android:name=".MinimalistApp"
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MinimalistLauncher">
+
+        <!-- Main Home Launcher Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:clearTaskOnLaunch="true"
+            android:stateNotNeeded="true"
+            android:theme="@style/Theme.MinimalistLauncher">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Mindful Breathing Pause Activity -->
+        <activity
+            android:name=".MindfulDelayActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MinimalistLauncher.Overlay"
+            android:windowSoftInputMode="adjustNothing" />
+
+        <!-- Mindful Exit Reminder Alert Activity (Time is Up!) -->
+        <activity
+            android:name=".MindfulExitReminderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MinimalistLauncher.Overlay"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true" />
+
+        <!-- Background Session Timer Service -->
+        <service
+            android:name=".MindfulUsageService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse" />
+
+    </application>
+</manifest>

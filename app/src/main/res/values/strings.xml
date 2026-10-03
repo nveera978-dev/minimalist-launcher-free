@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Minimalist Launcher Free</string>
+    <string name="default_quote">"Notice the impulse. Protect your attention."</string>
+    <string name="all_apps">All Apps (A-Z)</string>
+    <string name="settings">Settings</string>
+    <string name="mindful_pause_title">Mindful Pause</string>
+    <string name="mindful_pause_desc">Take a breath. Do you truly intend to open this app right now?</string>
+    <string name="abort_open_button">I don\'t need this (Exit to Home)</string>
+    <string name="time_expired_title">Time is Up!</string>
+    <string name="time_expired_desc">You set a limit for this session. Use your brain to exit and utilize your valuable time.</string>
+    <string name="exit_now_button">Exit Now &amp; Reclaim Time</string>
+</resources>
