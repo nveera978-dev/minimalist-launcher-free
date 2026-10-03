@@ -2,13 +2,16 @@ package com.free.minimalistlauncher
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
@@ -21,6 +24,7 @@ import java.util.*
 class MainActivity : Activity() {
 
     private lateinit var prefs: LauncherPreferences
+    private lateinit var defaultBanner: Button
     private lateinit var clockView: TextView
     private lateinit var dateView: TextView
     private lateinit var favoritesContainer: LinearLayout
@@ -47,6 +51,19 @@ class MainActivity : Activity() {
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
         }
+
+        // Default Launcher Setup Banner (Visible only if not yet set as default)
+        defaultBanner = Button(this).apply {
+            text = "⚡ Tap to Set as Default Home Screen"
+            setTextColor(Color.BLACK)
+            setBackgroundColor(Color.parseColor("#34D399"))
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(24, 24, 24, 24)
+            visibility = View.GONE
+            setOnClickListener { promptSetDefaultLauncher() }
+        }
+        root.addView(defaultBanner)
 
         // Clock & Date Header
         clockView = TextView(this).apply {
@@ -118,8 +135,47 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         handler.post(timeUpdater)
+        checkDefaultLauncherStatus()
         loadInstalledApps()
         refreshFavoritesUI()
+    }
+
+    private fun checkDefaultLauncherStatus() {
+        if (!isDefaultLauncher()) {
+            defaultBanner.visibility = View.VISIBLE
+        } else {
+            defaultBanner.visibility = View.GONE
+        }
+    }
+
+    private fun isDefaultLauncher(): Boolean {
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+        }
+        val resolveInfo = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        return resolveInfo?.activityInfo?.packageName == packageName
+    }
+
+    private fun promptSetDefaultLauncher() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(RoleManager::class.java)
+            if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                if (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
+                    startActivity(intent)
+                    return
+                }
+            }
+        }
+        try {
+            startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
+        } catch (_: Exception) {
+            try {
+                startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+            } catch (_: Exception) {
+                startActivity(Intent(Settings.ACTION_SETTINGS))
+            }
+        }
     }
 
     override fun onPause() {
