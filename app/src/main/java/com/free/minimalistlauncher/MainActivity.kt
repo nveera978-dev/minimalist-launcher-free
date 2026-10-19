@@ -25,6 +25,7 @@ class MainActivity : Activity() {
 
     private lateinit var prefs: LauncherPreferences
     private lateinit var usageStatsHelper: UsageStatsHelper
+    private lateinit var appUpdateManager: AppUpdateManager
     private lateinit var defaultBanner: Button
     private lateinit var screenTimePill: Button
     private lateinit var clockView: TextView
@@ -55,6 +56,8 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         prefs = LauncherPreferences(this)
         usageStatsHelper = UsageStatsHelper(this)
+        appUpdateManager = AppUpdateManager(this)
+        appUpdateManager.checkForUpdates(isManualCheck = false)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -171,6 +174,15 @@ class MainActivity : Activity() {
             setOnClickListener { showDigitalWellbeingDashboard() }
         }
         bottomBar.addView(statsBtn)
+
+        val updateBtn = Button(this).apply {
+            text = "Update"
+            setTextColor(Color.parseColor("#38BDF8"))
+            setBackgroundColor(Color.TRANSPARENT)
+            textSize = 13f
+            setOnClickListener { appUpdateManager.checkForUpdates(isManualCheck = true) }
+        }
+        bottomBar.addView(updateBtn)
 
         root.addView(bottomBar)
         setContentView(root)
@@ -747,6 +759,9 @@ class MainActivity : Activity() {
                         showDigitalWellbeingDashboard()
                     }
                     .show()
+            }
+            .setNegativeButton("Check Update") { _, _ ->
+                appUpdateManager.checkForUpdates(isManualCheck = true)
             }
             .create()
 

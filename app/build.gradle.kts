@@ -7,18 +7,31 @@ android {
     namespace = "com.free.minimalistlauncher"
     compileSdk = 34
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("minimalist.jks")
+            storePassword = "minimalist123"
+            keyAlias = "minimalist"
+            keyPassword = "minimalist123"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.free.minimalistlauncher"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.1.0"
+        versionCode = 5
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
-        release {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("release")
+        }
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

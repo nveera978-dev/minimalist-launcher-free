@@ -5,6 +5,9 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,10 +28,27 @@ jobs:
         gradle-version: '8.4'
 
     - name: Build APK
-      run: gradle assembleDebug --no-daemon
+      run: gradle assembleRelease --no-daemon
 
-    - name: Upload APK
+    - name: Copy APK for Distribution
+      run: cp app/build/outputs/apk/release/app-release.apk MinimalistLauncher-Free.apk
+
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: MinimalistLauncher-Free-APK
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: MinimalistLauncher-Free.apk
+
+    - name: Publish GitHub Release v1.2.0
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v1.2.0
+        name: "Minimalist Launcher v1.2.0 (In-App Auto-Updater & Digital Wellbeing)"
+        body: |
+          🚀 What's New in v1.2.0:
+          - 🔄 Built-in In-App Auto-Updater (update directly inside the app with 1-tap!)
+          - 🔐 Permanent cryptographic key (resolves package conflicts permanently)
+          - ⏱️ Live Digital Wellbeing Daily & 7-Day Weekly Reports
+          - 12-Hour Clock with AM/PM & Daily Positive Affirmations
+          - Mindful 5-second breathing delays for YouTube & JioHotstar
+        files: MinimalistLauncher-Free.apk
