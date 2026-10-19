@@ -24,7 +24,9 @@ import java.util.*
 class MainActivity : Activity() {
 
     private lateinit var prefs: LauncherPreferences
+    private lateinit var usageStatsHelper: UsageStatsHelper
     private lateinit var defaultBanner: Button
+    private lateinit var screenTimePill: Button
     private lateinit var clockView: TextView
     private lateinit var amPmView: TextView
     private lateinit var dateView: TextView
@@ -52,6 +54,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = LauncherPreferences(this)
+        usageStatsHelper = UsageStatsHelper(this)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -108,9 +111,27 @@ class MainActivity : Activity() {
             text = getString(R.string.default_quote)
             textSize = 13f
             setTextColor(Color.parseColor("#34D399"))
-            setPadding(0, 0, 0, 36)
+            setPadding(0, 0, 0, 20)
         }
         root.addView(quoteView)
+
+        // Live Screen Time & Digital Wellbeing Pill
+        screenTimePill = Button(this).apply {
+            text = "⏱ Loading screen time..."
+            textSize = 12f
+            setTextColor(Color.parseColor("#E2E8F0"))
+            setBackgroundColor(Color.parseColor("#0F172A"))
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            setPadding(24, 14, 24, 14)
+            setOnClickListener {
+                if (usageStatsHelper.hasUsagePermission()) {
+                    showDigitalWellbeingDashboard()
+                } else {
+                    usageStatsHelper.openUsageAccessSettings()
+                }
+            }
+        }
+        root.addView(screenTimePill)
 
         // Favorites Container
         val scrollView = ScrollView(this).apply {
@@ -143,11 +164,11 @@ class MainActivity : Activity() {
         bottomBar.addView(allAppsBtn)
 
         val statsBtn = Button(this).apply {
-            text = "Stats"
+            text = "Wellbeing"
             setTextColor(Color.parseColor("#10B981"))
             setBackgroundColor(Color.TRANSPARENT)
             textSize = 13f
-            setOnClickListener { showStatsDialog() }
+            setOnClickListener { showDigitalWellbeingDashboard() }
         }
         bottomBar.addView(statsBtn)
 
@@ -159,6 +180,7 @@ class MainActivity : Activity() {
         super.onResume()
         handler.post(timeUpdater)
         checkDefaultLauncherStatus()
+        updateScreenTimePill()
         loadInstalledApps()
         refreshFavoritesUI()
     }
@@ -407,12 +429,328 @@ class MainActivity : Activity() {
         dialog.show()
     }
 
-    private fun showStatsDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Digital Detox Progress")
-            .setMessage("Mindless opens prevented: ${prefs.opensPrevented}\nEstimated time saved: ${prefs.minutesSaved} minutes\n\nEvery time you pause at the breathing screen, your brain regains focus!")
-            .setPositiveButton("Keep Going", null)
-            .show()
+    private fun updateScreenTimePill() {
+        if (!usageStatsHelper.hasUsagePermission()) {
+            screenTimePill.text = "📊 Tap to Enable Screen Time & Digital Wellbeing"
+            screenTimePill.setTextColor(Color.parseColor("#F59E0B"))
+            screenTimePill.setBackgroundColor(Color.parseColor("#292524"))
+            return
+        }
+
+        val report = usageStatsHelper.getTodayUsageReport()
+        val totalMinutes = (report.totalScreenTimeMillis / (1000 * 60)).toInt()
+        val goalMinutes = usageStatsHelper.dailyGoalMinutes
+        val remainingMinutes = goalMinutes - totalMinutes
+
+        val statusText = if (remainingMinutes > 0) {
+            "${remainingMinutes}m left"
+        } else {
+            "${-remainingMinutes}m over goal!"
+        }
+
+        screenTimePill.text = "⏱ Today: ${report.formattedTotalTime} • Goal: ${goalMinutes / 60}h (${statusText}) • ${report.unlockCount} Unlocks"
+        screenTimePill.setTextColor(if (remainingMinutes >= 0) Color.parseColor("#34D399") else Color.parseColor("#F87171"))
+        screenTimePill.setBackgroundColor(Color.parseColor("#0F172A"))
+    }
+
+    private fun showDigitalWellbeingDashboard() {
+        if (!usageStatsHelper.hasUsagePermission()) {
+            usageStatsHelper.openUsageAccessSettings()
+            return
+        }
+
+        val dialogView = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.parseColor("#090D16"))
+            setPadding(36, 36, 36, 36)
+        }
+
+        // Header Title
+        val headerTitle = TextView(this).apply {
+            text = "📊 Digital Wellbeing & Reports"
+            setTextColor(Color.WHITE)
+            textSize = 20f
+            typeface = Typeface.DEFAULT_BOLD
+            setPadding(0, 0, 0, 16)
+        }
+        dialogView.addView(headerTitle)
+
+        // Dynamic container for Today vs Weekly
+        val contentContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        val scroll = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                900
+            )
+            addView(contentContainer)
+        }
+
+        // Tab Row
+        val tabRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 0, 0, 20)
+        }
+
+        val todayTabBtn = Button(this).apply {
+            text = "Today's Report"
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.parseColor("#10B981"))
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val weeklyTabBtn = Button(this).apply {
+            text = "Weekly (7 Days)"
+            textSize = 12f
+            setTextColor(Color.parseColor("#94A3B8"))
+            setBackgroundColor(Color.parseColor("#1E293B"))
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        tabRow.addView(todayTabBtn)
+        tabRow.addView(weeklyTabBtn)
+        dialogView.addView(tabRow)
+        dialogView.addView(scroll)
+
+        fun renderToday() {
+            contentContainer.removeAllViews()
+            todayTabBtn.setBackgroundColor(Color.parseColor("#10B981"))
+            todayTabBtn.setTextColor(Color.WHITE)
+            weeklyTabBtn.setBackgroundColor(Color.parseColor("#1E293B"))
+            weeklyTabBtn.setTextColor(Color.parseColor("#94A3B8"))
+
+            val report = usageStatsHelper.getTodayUsageReport()
+            val totalMinutes = (report.totalScreenTimeMillis / (1000 * 60)).toInt()
+            val goalMinutes = usageStatsHelper.dailyGoalMinutes
+            val remaining = goalMinutes - totalMinutes
+
+            val statsBox = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundColor(Color.parseColor("#131B2E"))
+                setPadding(24, 24, 24, 24)
+            }
+
+            val screenTimeText = TextView(this).apply {
+                text = "Screen Time Today: ${report.formattedTotalTime}"
+                setTextColor(Color.WHITE)
+                textSize = 18f
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            statsBox.addView(screenTimeText)
+
+            val goalText = TextView(this).apply {
+                text = "Daily Goal: ${goalMinutes / 60}h (${if (remaining >= 0) "${remaining}m remaining" else "${-remaining}m exceeded!"})"
+                setTextColor(if (remaining >= 0) Color.parseColor("#34D399") else Color.parseColor("#F87171"))
+                textSize = 13f
+                setPadding(0, 6, 0, 12)
+            }
+            statsBox.addView(goalText)
+
+            val unlocksText = TextView(this).apply {
+                text = "🔓 Phone Unlocks: ${report.unlockCount} times picked up today"
+                setTextColor(Color.parseColor("#CBD5E1"))
+                textSize = 13f
+                setPadding(0, 0, 0, 8)
+            }
+            statsBox.addView(unlocksText)
+
+            val savedText = TextView(this).apply {
+                text = "🎯 Mindless opens resisted: ${prefs.opensPrevented} (${prefs.minutesSaved}m saved)"
+                setTextColor(Color.parseColor("#38BDF8"))
+                textSize = 13f
+            }
+            statsBox.addView(savedText)
+            contentContainer.addView(statsBox)
+
+            // Top Apps Header
+            val topAppsLabel = TextView(this).apply {
+                text = "Top Used Apps Today:"
+                setTextColor(Color.parseColor("#94A3B8"))
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, 24, 0, 12)
+            }
+            contentContainer.addView(topAppsLabel)
+
+            if (report.topApps.isEmpty()) {
+                val empty = TextView(this).apply {
+                    text = "No apps used yet today."
+                    setTextColor(Color.parseColor("#64748B"))
+                }
+                contentContainer.addView(empty)
+            } else {
+                report.topApps.forEach { app ->
+                    val row = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding(0, 12, 0, 12)
+                    }
+                    val name = TextView(this).apply {
+                        text = app.appName
+                        setTextColor(Color.WHITE)
+                        textSize = 15f
+                        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                    }
+                    val time = TextView(this).apply {
+                        text = app.formattedTime
+                        setTextColor(Color.parseColor("#34D399"))
+                        textSize = 14f
+                        typeface = Typeface.DEFAULT_BOLD
+                    }
+                    row.addView(name)
+                    row.addView(time)
+                    contentContainer.addView(row)
+                }
+            }
+        }
+
+        fun renderWeekly() {
+            contentContainer.removeAllViews()
+            weeklyTabBtn.setBackgroundColor(Color.parseColor("#10B981"))
+            weeklyTabBtn.setTextColor(Color.WHITE)
+            todayTabBtn.setBackgroundColor(Color.parseColor("#1E293B"))
+            todayTabBtn.setTextColor(Color.parseColor("#94A3B8"))
+
+            val weekly = usageStatsHelper.getWeeklyReport()
+
+            val summaryBox = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundColor(Color.parseColor("#131B2E"))
+                setPadding(24, 24, 24, 24)
+            }
+
+            val totalText = TextView(this).apply {
+                text = "Weekly Total: ${weekly.formattedWeeklyTotal}"
+                setTextColor(Color.WHITE)
+                textSize = 18f
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            summaryBox.addView(totalText)
+
+            val avgText = TextView(this).apply {
+                text = "Daily Average: ${weekly.formattedDailyAverage} / day"
+                setTextColor(Color.parseColor("#38BDF8"))
+                textSize = 14f
+                setPadding(0, 6, 0, 6)
+            }
+            summaryBox.addView(avgText)
+
+            val goalScore = TextView(this).apply {
+                text = "Goal Achieved: ${weekly.daysUnderGoal} of 7 days"
+                setTextColor(if (weekly.daysUnderGoal >= 4) Color.parseColor("#34D399") else Color.parseColor("#F87171"))
+                textSize = 13f
+            }
+            summaryBox.addView(goalScore)
+            contentContainer.addView(summaryBox)
+
+            // 7-Day History Chart
+            val chartHeader = TextView(this).apply {
+                text = "7-Day Usage History:"
+                setTextColor(Color.parseColor("#94A3B8"))
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, 24, 0, 12)
+            }
+            contentContainer.addView(chartHeader)
+
+            val maxTime = weekly.dailyHistory.maxOfOrNull { it.totalTimeMillis } ?: 1L
+            weekly.dailyHistory.forEach { day ->
+                val dayRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, 8, 0, 8)
+                }
+
+                val dayLabel = TextView(this).apply {
+                    text = day.dayName
+                    setTextColor(Color.WHITE)
+                    textSize = 13f
+                    layoutParams = LinearLayout.LayoutParams(90, ViewGroup.LayoutParams.WRAP_CONTENT)
+                }
+                dayRow.addView(dayLabel)
+
+                // Visual Bar
+                val barProgress = if (maxTime > 0) ((day.totalTimeMillis.toFloat() / maxTime) * 15).toInt().coerceAtLeast(1) else 1
+                val barStr = "█".repeat(barProgress)
+
+                val barView = TextView(this).apply {
+                    text = barStr
+                    val isOver = day.totalTimeMillis > (usageStatsHelper.dailyGoalMinutes * 60 * 1000L)
+                    setTextColor(if (isOver) Color.parseColor("#F87171") else Color.parseColor("#10B981"))
+                    textSize = 12f
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                dayRow.addView(barView)
+
+                val timeView = TextView(this).apply {
+                    text = day.formattedTime
+                    setTextColor(Color.parseColor("#CBD5E1"))
+                    textSize = 12f
+                }
+                dayRow.addView(timeView)
+                contentContainer.addView(dayRow)
+            }
+
+            // Top Apps of the Week
+            val topAppsWeekLabel = TextView(this).apply {
+                text = "Most Used Apps (Past 7 Days):"
+                setTextColor(Color.parseColor("#94A3B8"))
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, 24, 0, 12)
+            }
+            contentContainer.addView(topAppsWeekLabel)
+
+            weekly.topAppsOfWeek.forEach { app ->
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, 10, 0, 10)
+                }
+                val name = TextView(this).apply {
+                    text = app.appName
+                    setTextColor(Color.WHITE)
+                    textSize = 14f
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                val time = TextView(this).apply {
+                    text = app.formattedTime
+                    setTextColor(Color.parseColor("#34D399"))
+                    textSize = 13f
+                    typeface = Typeface.DEFAULT_BOLD
+                }
+                row.addView(name)
+                row.addView(time)
+                contentContainer.addView(row)
+            }
+        }
+
+        todayTabBtn.setOnClickListener { renderToday() }
+        weeklyTabBtn.setOnClickListener { renderWeekly() }
+
+        renderToday()
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton("Close", null)
+            .setNeutralButton("Change Goal") { _, _ ->
+                val goals = arrayOf("1h 30m", "2h 00m (Default)", "2h 30m", "3h 00m")
+                val goalValues = intArrayOf(90, 120, 150, 180)
+                AlertDialog.Builder(this)
+                    .setTitle("Select Daily Screen Time Goal")
+                    .setItems(goals) { _, which ->
+                        usageStatsHelper.dailyGoalMinutes = goalValues[which]
+                        updateScreenTimePill()
+                        showDigitalWellbeingDashboard()
+                    }
+                    .show()
+            }
+            .create()
+
+        dialog.show()
     }
 
     override fun onBackPressed() {
