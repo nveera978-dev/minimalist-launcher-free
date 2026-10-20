@@ -95,14 +95,13 @@
             <span id="mindfulQuote">"You are doing great today. Stay present and keep winning."</span>
           </div>
 
-          <!-- Live Screen Time Pill on Home Screen -->
-          <button onclick="openWellbeingModal()" class="w-full mt-3.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-800 rounded-xl px-3.5 py-2.5 text-left transition flex items-center justify-between group shadow-sm">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span class="text-xs text-slate-200 font-medium">⏱ Today: <span id="simTodayScreenTime" class="text-emerald-400 font-bold">1h 16m</span></span>
-              <span id="simGoalRemaining" class="text-[11px] text-slate-400">• Goal: 2h (44m left)</span>
+          <!-- Privacy-First Digital Wellbeing Button (Never exposes personal hours or unlocks on home screen) -->
+          <button onclick="openWellbeingModal()" class="w-full mt-3.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-800 rounded-xl px-4 py-2.5 text-left transition flex items-center justify-between group shadow-sm">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span class="text-xs text-slate-200 font-medium">📊 Digital Wellbeing & Reports</span>
             </div>
-            <span class="text-[11px] text-slate-500 group-hover:text-emerald-400 transition" id="simUnlockCount">38 Unlocks ➔</span>
+            <span class="text-[11px] text-slate-500 group-hover:text-emerald-400 transition">View ➔</span>
           </button>
         </div>
 
@@ -158,6 +157,10 @@
 
           <button onclick="openWellbeingModal()" class="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-medium py-1.5 px-3 rounded-xl bg-emerald-950/40 border border-emerald-800/40 transition">
             <span>📊 Wellbeing</span>
+          </button>
+
+          <button onclick="simCheckUpdate()" class="flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300 font-medium py-1.5 px-2.5 rounded-xl bg-sky-950/40 border border-sky-800/40 transition">
+            <span>🔄 Update</span>
           </button>
 
           <button onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-slate-300 transition" title="Settings">
@@ -527,6 +530,44 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- MODAL: IN-APP UPDATE                           -->
+  <!-- ============================================== -->
+  <div id="updateModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-sky-400 animate-ping"></span>
+          <h3 class="text-base font-bold text-white tracking-wide">In-App Update Available</h3>
+        </div>
+        <button onclick="closeUpdateModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+      <div>
+        <span class="text-xs px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800">Version 1.2.0</span>
+        <h4 class="text-sm font-semibold text-white mt-2">Internal Update Ready</h4>
+        <p class="text-xs text-slate-400 mt-1">Updates directly inside the app without needing external browser downloads!</p>
+        <ul class="text-xs text-slate-300 mt-3 space-y-1.5 list-disc list-inside bg-slate-950 p-3 rounded-xl border border-slate-800">
+          <li>1-Click In-App Auto-Updater</li>
+          <li>Permanent Cryptographic Key (fixes package conflict)</li>
+          <li>Digital Wellbeing Daily & Weekly Tracking</li>
+        </ul>
+      </div>
+      <div id="simUpdateProgressBox" class="hidden space-y-2">
+        <div class="flex justify-between text-xs text-slate-300">
+          <span>Downloading update internally...</span>
+          <span id="simUpdatePercent" class="font-mono text-sky-400 font-bold">0%</span>
+        </div>
+        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+          <div id="simUpdateBar" class="bg-sky-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800" id="simUpdateActions">
+        <button onclick="closeUpdateModal()" class="text-xs text-slate-400 hover:text-white px-3 py-1.5 transition">Later</button>
+        <button onclick="startSimUpdate()" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-1.5 rounded-xl text-xs font-medium transition">Update Now</button>
+      </div>
     </div>
   </div>
 
@@ -956,6 +997,30 @@
         document.getElementById('simGoalRemaining').textContent = `• Goal: ${hours}h`;
         showPhoneToast(`Daily goal updated to ${hours} hours!`);
       }
+    }
+
+    function openUpdateModal() { document.getElementById('updateModal').classList.remove('hidden'); }
+    function closeUpdateModal() { document.getElementById('updateModal').classList.add('hidden'); }
+    function simCheckUpdate() { openUpdateModal(); }
+    function startSimUpdate() {
+      document.getElementById('simUpdateProgressBox').classList.remove('hidden');
+      document.getElementById('simUpdateActions').classList.add('hidden');
+      let p = 0;
+      const interval = setInterval(() => {
+        p += 25;
+        document.getElementById('simUpdatePercent').textContent = p + '%';
+        document.getElementById('simUpdateBar').style.width = p + '%';
+        if (p >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            closeUpdateModal();
+            showPhoneToast('App updated internally to v1.2.0 successfully!');
+            document.getElementById('simUpdateProgressBox').classList.add('hidden');
+            document.getElementById('simUpdateActions').classList.remove('hidden');
+            document.getElementById('simUpdateBar').style.width = '0%';
+          }, 600);
+        }
+      }, 400);
     }
 
     // Toggle phone frame vs full viewport

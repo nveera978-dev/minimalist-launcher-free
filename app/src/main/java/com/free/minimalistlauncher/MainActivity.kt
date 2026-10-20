@@ -288,6 +288,18 @@ class MainActivity : Activity() {
                 }
             }
         }
+
+        // Auto-enable Mindful Delay for entertainment, video, and social media apps on first run
+        if (!prefs.hasMindfulAppsConfigured() && allInstalledApps.isNotEmpty()) {
+            val autoMindfulKeywords = listOf("youtube", "hotstar", "instagram", "facebook", "tiktok", "netflix", "primevideo", "twitter", "reddit", "reels", "shorts")
+            allInstalledApps.forEach { app ->
+                val labelLower = app.label.lowercase(Locale.getDefault())
+                val pkgLower = app.packageName.lowercase(Locale.getDefault())
+                if (autoMindfulKeywords.any { labelLower.contains(it) || pkgLower.contains(it) }) {
+                    prefs.setMindful(app.packageName, true)
+                }
+            }
+        }
     }
 
     private fun refreshFavoritesUI() {
@@ -307,9 +319,10 @@ class MainActivity : Activity() {
         }
 
         favApps.forEach { app ->
+            val isMindful = prefs.getMindfulPackages().contains(app.packageName)
             val appRow = TextView(this).apply {
-                text = if (prefs.getMindfulPackages().contains(app.packageName)) {
-                    "${app.label}  •"
+                text = if (isMindful) {
+                    "${app.label}  ⏸ 5s"
                 } else {
                     app.label
                 }
@@ -318,9 +331,42 @@ class MainActivity : Activity() {
                 typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
                 setPadding(0, 24, 0, 24)
                 setOnClickListener { launchAppWithMindfulness(app) }
+                setOnLongClickListener {
+                    showAppOptionsDialog(app)
+                    true
+                }
             }
             favoritesContainer.addView(appRow)
         }
+    }
+
+    private fun showAppOptionsDialog(app: AppItem) {
+        val isMindful = prefs.getMindfulPackages().contains(app.packageName)
+        val mindfulActionText = if (isMindful) "Disable 5-Second Mindful Delay" else "Enable 5-Second Mindful Delay"
+        val options = arrayOf(
+            mindfulActionText,
+            "Remove from Home Screen Favorites"
+        )
+        AlertDialog.Builder(this)
+            .setTitle(app.label)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> {
+                        prefs.setMindful(app.packageName, !isMindful)
+                        val status = if (!isMindful) "Activated (5s breathing pause enabled)" else "Disabled"
+                        Toast.makeText(this, "Mindful Delay $status for ${app.label}", Toast.LENGTH_SHORT).show()
+                        loadInstalledApps()
+                        refreshFavoritesUI()
+                    }
+                    1 -> {
+                        prefs.setFavorite(app.packageName, false)
+                        refreshFavoritesUI()
+                        Toast.makeText(this, "Removed ${app.label} from favorites", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun launchAppWithMindfulness(app: AppItem) {
@@ -407,6 +453,7 @@ class MainActivity : Activity() {
                     setBackgroundColor(Color.TRANSPARENT)
                     setOnClickListener {
                         prefs.setFavorite(app.packageName, !isFav)
+                        loadInstalledApps()
                         refreshFavoritesUI()
                         updateList(searchInput.text.toString())
                     }
@@ -421,6 +468,9 @@ class MainActivity : Activity() {
                     setBackgroundColor(Color.TRANSPARENT)
                     setOnClickListener {
                         prefs.setMindful(app.packageName, !isMindful)
+                        val status = if (!isMindful) "Activated (5s breathing pause)" else "Disabled"
+                        Toast.makeText(this@MainActivity, "Mindful Delay $status for ${app.label}", Toast.LENGTH_SHORT).show()
+                        loadInstalledApps()
                         refreshFavoritesUI()
                         updateList(searchInput.text.toString())
                     }
@@ -443,25 +493,15 @@ class MainActivity : Activity() {
 
     private fun updateScreenTimePill() {
         if (!usageStatsHelper.hasUsagePermission()) {
-            screenTimePill.text = "📊 Tap to Enable Screen Time & Digital Wellbeing"
+            screenTimePill.text = "📊 Tap to Enable Digital Wellbeing"
             screenTimePill.setTextColor(Color.parseColor("#F59E0B"))
-            screenTimePill.setBackgroundColor(Color.parseColor("#292524"))
+            screenTimePill.setBackgroundColor(Color.parseColor("#1E293B"))
             return
         }
 
-        val report = usageStatsHelper.getTodayUsageReport()
-        val totalMinutes = (report.totalScreenTimeMillis / (1000 * 60)).toInt()
-        val goalMinutes = usageStatsHelper.dailyGoalMinutes
-        val remainingMinutes = goalMinutes - totalMinutes
-
-        val statusText = if (remainingMinutes > 0) {
-            "${remainingMinutes}m left"
-        } else {
-            "${-remainingMinutes}m over goal!"
-        }
-
-        screenTimePill.text = "⏱ Today: ${report.formattedTotalTime} • Goal: ${goalMinutes / 60}h (${statusText}) • ${report.unlockCount} Unlocks"
-        screenTimePill.setTextColor(if (remainingMinutes >= 0) Color.parseColor("#34D399") else Color.parseColor("#F87171"))
+        // Privacy-first button: Never leak personal hours, over-goal alerts, or unlock counts on open home screen!
+        screenTimePill.text = "📊 Digital Wellbeing & Reports"
+        screenTimePill.setTextColor(Color.parseColor("#34D399"))
         screenTimePill.setBackgroundColor(Color.parseColor("#0F172A"))
     }
 

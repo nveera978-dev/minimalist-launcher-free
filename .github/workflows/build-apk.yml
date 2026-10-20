@@ -39,16 +39,16 @@ jobs:
         name: MinimalistLauncher-Free-APK
         path: MinimalistLauncher-Free.apk
 
-    - name: Publish GitHub Release v1.2.0
+    - name: Publish GitHub Release v1.3.0
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v1.2.0
-        name: "Minimalist Launcher v1.2.0 (In-App Auto-Updater & Digital Wellbeing)"
+        tag_name: v1.3.0
+        name: "Minimalist Launcher v1.3.0 (Accurate Screen Time & Privacy Redesign)"
         body: |
-          🚀 What's New in v1.2.0:
-          - 🔄 Built-in In-App Auto-Updater (update directly inside the app with 1-tap!)
-          - 🔐 Permanent cryptographic key (resolves package conflicts permanently)
-          - ⏱️ Live Digital Wellbeing Daily & 7-Day Weekly Reports
-          - 12-Hour Clock with AM/PM & Daily Positive Affirmations
-          - Mindful 5-second breathing delays for YouTube & JioHotstar
+          🚀 What's New in v1.3.0:
+          - ⏱️ Accurate Screen Time Calculation: Uses event-based tracking strictly from midnight today (fixes impossible 10h 22m morning reports and 91h weekly counts).
+          - 🔒 Home Screen Privacy: Replaced exposed statistics banner with discrete `[ 📊 Digital Wellbeing & Reports ]` button to keep your personal usage private from bystanders.
+          - 🧘 Long-Press App Controls: Long-press any app on the home screen to toggle 5-second mindful delay or remove duplicates in 1 click.
+          - ⚡ Mindful Delay Fixed: Target apps open reliably without foreground service crashes.
+          - 🔄 1-Tap In-App Auto-Updater: Updates directly inside the app!
         files: MinimalistLauncher-Free.apk

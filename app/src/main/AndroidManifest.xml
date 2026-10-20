@@ -61,7 +61,11 @@
         <service
             android:name=".MindfulUsageService"
             android:exported="false"
-            android:foregroundServiceType="specialUse" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Mindful session timer for digital wellbeing" />
+        </service>
 
         <!-- FileProvider for internal in-app APK installer -->
         <provider

@@ -44,6 +44,10 @@ class LauncherPreferences(context: Context) {
         prefs.edit().putStringSet(KEY_FAVORITES, current).apply()
     }
 
+    fun hasMindfulAppsConfigured(): Boolean {
+        return prefs.contains(KEY_MINDFUL_APPS)
+    }
+
     fun getMindfulPackages(): Set<String> {
         return prefs.getStringSet(KEY_MINDFUL_APPS, emptySet()) ?: emptySet()
     }

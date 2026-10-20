@@ -124,6 +124,65 @@ class UsageStatsHelper(private val context: Context) {
         }
     }
 
+    private fun queryIntervalUsage(startTime: Long, endTime: Long): Pair<Long, Map<String, Long>> {
+        val maxDuration = (endTime - startTime).coerceAtLeast(0L)
+        val appDurations = mutableMapOf<String, Long>()
+        val lastEventTime = mutableMapOf<String, Long>()
+        var screenOnTime = 0L
+        var totalScreenOnMillis = 0L
+
+        try {
+            val events = usageStatsManager.queryEvents(startTime, endTime)
+            val event = UsageEvents.Event()
+
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                val pkg = event.packageName ?: continue
+                val time = event.timeStamp
+
+                when (event.eventType) {
+                    UsageEvents.Event.ACTIVITY_RESUMED,
+                    UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                        lastEventTime[pkg] = time
+                    }
+                    UsageEvents.Event.ACTIVITY_PAUSED,
+                    UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                        val start = lastEventTime.remove(pkg)
+                        if (start != null && time > start) {
+                            val duration = time - start
+                            appDurations[pkg] = appDurations.getOrDefault(pkg, 0L) + duration
+                        }
+                    }
+                    UsageEvents.Event.SCREEN_INTERACTIVE -> {
+                        screenOnTime = time
+                    }
+                    UsageEvents.Event.SCREEN_NON_INTERACTIVE -> {
+                        if (screenOnTime > 0 && time > screenOnTime) {
+                            totalScreenOnMillis += (time - screenOnTime)
+                            screenOnTime = 0L
+                        }
+                    }
+                }
+            }
+
+            if (screenOnTime > 0 && endTime > screenOnTime) {
+                totalScreenOnMillis += (endTime - screenOnTime)
+            }
+            lastEventTime.forEach { (pkg, start) ->
+                if (endTime > start) {
+                    val duration = endTime - start
+                    appDurations[pkg] = appDurations.getOrDefault(pkg, 0L) + duration
+                }
+            }
+        } catch (_: Exception) {}
+
+        val appTotal = appDurations.filterKeys { it != context.packageName }.values.sum()
+        var finalScreenTime = if (totalScreenOnMillis > 0) totalScreenOnMillis else appTotal
+        finalScreenTime = finalScreenTime.coerceIn(0L, maxDuration)
+
+        return Pair(finalScreenTime, appDurations)
+    }
+
     fun getTodayUsageReport(): DailyUsageReport {
         if (!hasUsagePermission()) {
             return DailyUsageReport(0, 0, emptyList())
@@ -137,38 +196,18 @@ class UsageStatsHelper(private val context: Context) {
         }
         val startTime = calendar.timeInMillis
         val endTime = System.currentTimeMillis()
+        val maxDuration = (endTime - startTime).coerceAtLeast(0L)
 
-        val stats = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            startTime,
-            endTime
-        )
+        val (totalScreenMillis, appDurations) = queryIntervalUsage(startTime, endTime)
 
-        val pm = context.packageManager
-        val appUsageList = mutableListOf<AppUsageInfo>()
-        var totalScreenMillis = 0L
-
-        stats?.filter { it.totalTimeInForeground > 30 * 1000 } // Over 30s
-            ?.forEach { stat ->
-                totalScreenMillis += stat.totalTimeInForeground
-                val appName = try {
-                    val appInfo = pm.getApplicationInfo(stat.packageName, 0)
-                    pm.getApplicationLabel(appInfo).toString()
-                } catch (e: PackageManager.NameNotFoundException) {
-                    stat.packageName
-                }
-                appUsageList.add(AppUsageInfo(stat.packageName, appName, stat.totalTimeInForeground))
-            }
-
-        // Count unlocks (Screen ON / Keyguard dismissed)
+        // Count unlocks (Keyguard dismissed only - avoids double counting)
         var unlocks = 0
         try {
             val events = usageStatsManager.queryEvents(startTime, endTime)
             val event = UsageEvents.Event()
             while (events.hasNextEvent()) {
                 events.getNextEvent(event)
-                if (event.eventType == UsageEvents.Event.KEYGUARD_HIDDEN ||
-                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && event.eventType == UsageEvents.Event.SCREEN_INTERACTIVE)) {
+                if (event.eventType == UsageEvents.Event.KEYGUARD_HIDDEN) {
                     unlocks++
                 }
             }
@@ -176,7 +215,21 @@ class UsageStatsHelper(private val context: Context) {
             unlocks = 0
         }
 
-        val topApps = appUsageList.sortedByDescending { it.totalTimeMillis }.take(5)
+        val pm = context.packageManager
+        val topApps = appDurations.filterKeys { it != context.packageName && appDurations[it]!! > 15 * 1000 }
+            .map { (pkg, time) ->
+                val clampedTime = time.coerceAtMost(maxDuration)
+                val appName = try {
+                    val appInfo = pm.getApplicationInfo(pkg, 0)
+                    pm.getApplicationLabel(appInfo).toString()
+                } catch (_: Exception) {
+                    pkg
+                }
+                AppUsageInfo(pkg, appName, clampedTime)
+            }
+            .sortedByDescending { it.totalTimeMillis }
+            .take(5)
+
         return DailyUsageReport(totalScreenMillis, unlocks, topApps)
     }
 
@@ -208,23 +261,17 @@ class UsageStatsHelper(private val context: Context) {
                 set(Calendar.SECOND, 59)
                 set(Calendar.MILLISECOND, 999)
             }
+            val endTime = if (i == 0) System.currentTimeMillis() else calEnd.timeInMillis
+            val (dayTotal, dayApps) = queryIntervalUsage(calStart.timeInMillis, endTime)
 
-            val dayName = days[calStart.get(Calendar.DAY_OF_WEEK) - 1]
-            val stats = usageStatsManager.queryUsageStats(
-                UsageStatsManager.INTERVAL_DAILY,
-                calStart.timeInMillis,
-                calEnd.timeInMillis
-            )
-
-            var dayTotal = 0L
-            stats?.forEach { stat ->
-                dayTotal += stat.totalTimeInForeground
-                val current = appAggregator.getOrDefault(stat.packageName, 0L)
-                appAggregator[stat.packageName] = current + stat.totalTimeInForeground
+            dayApps.filterKeys { it != context.packageName }.forEach { (pkg, time) ->
+                val current = appAggregator.getOrDefault(pkg, 0L)
+                appAggregator[pkg] = current + time
             }
 
             weeklyTotalMillis += dayTotal
             if (dayTotal > goalMillis) daysExceeded++ else daysUnder++
+            val dayName = days[calStart.get(Calendar.DAY_OF_WEEK) - 1]
             dailyList.add(DayUsageSummary(dayName, dayTotal))
         }
 
@@ -235,7 +282,7 @@ class UsageStatsHelper(private val context: Context) {
             val appName = try {
                 val appInfo = pm.getApplicationInfo(pkg, 0)
                 pm.getApplicationLabel(appInfo).toString()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 pkg
             }
             AppUsageInfo(pkg, appName, time)

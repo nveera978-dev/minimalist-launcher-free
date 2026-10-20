@@ -37,7 +37,11 @@ class MindfulUsageService : Service() {
         val durationMinutes = intent?.getIntExtra(EXTRA_DURATION_MINUTES, 5) ?: 5
         val totalMillis = durationMinutes * 60 * 1000L
 
-        startForeground(1001, createRunningNotification(appName, durationMinutes))
+        try {
+            startForeground(1001, createRunningNotification(appName, durationMinutes))
+        } catch (_: Exception) {
+            // Android 14 safety fallback
+        }
 
         countDownTimer?.cancel()
         countDownTimer = object : CountDownTimer(totalMillis, 1000) {

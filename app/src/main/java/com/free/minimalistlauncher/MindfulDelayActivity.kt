@@ -172,10 +172,21 @@ class MindfulDelayActivity : Activity() {
     }
 
     private fun launchTargetApp(packageName: String, appName: String, durationMinutes: Int) {
-        MindfulUsageService.startTimer(this, appName, durationMinutes)
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-        if (launchIntent != null) {
-            startActivity(launchIntent)
+        try {
+            MindfulUsageService.startTimer(this, appName, durationMinutes)
+        } catch (_: Exception) {
+            // Safety: Never block app launch if service encounters background limits
+        }
+        try {
+            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(launchIntent)
+            } else {
+                Toast.makeText(this, "Could not open $appName", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Failed to launch $appName: ${e.message}", Toast.LENGTH_SHORT).show()
         }
         finish()
     }
